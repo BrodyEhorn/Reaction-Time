@@ -44,8 +44,8 @@ def handle_click(event):
         # If leaderboard has fewer than 5, always qualifies
         if len(top_scores) < 5 or reaction_time < max(top_scores):
             player_name = simpledialog.askstring("New High Score!", "You made the leaderboard!\n Enter your name:")
-        if not player_name:
-            player_name = "Anonymous"
+        else:
+            player_name = "Anonymous"   
 
 
 
@@ -59,10 +59,10 @@ def handle_click(event):
 
     elif state == 3:
         state = 0
-        time_label.config(text="Click to start")
+        time_label.config(text="Test Your Reaction Time\n\n\nClick to start")
         root.config(bg="white")
-        time_label.config(bg="white")
-        leaderboard_label.pack(pady=20)
+        time_label.config(bg="white", pady=0)
+        leaderboard_label.pack(pady=5)
 
 def start_timer():
     global state, running, timer_job
@@ -71,7 +71,7 @@ def start_timer():
         running = True
         time_label.config(text="Wait...")
         root.config(bg="#ffe799")
-        time_label.config(bg="#ffe799")
+        time_label.config(bg="#ffe799", pady=200)
 
         leaderboard_label.pack_forget()
 
@@ -94,7 +94,7 @@ def update_leaderboard():
     top_scores = cursor.fetchall()
     leaderboard_text = "Leaderboard:\n"
     for i, (name, reaction_time) in enumerate(top_scores, start=1):
-        leaderboard_text += f"{i}. {name}: {reaction_time:.3f}\n"
+        leaderboard_text += f"{i:<2}  {name:<10}  {reaction_time:>6.3f}\n"
     leaderboard_label.config(text=leaderboard_text)
        
 
@@ -104,11 +104,14 @@ root.geometry("400x500")
 root.config(bg="white")
 root.bind("<Button-1>", handle_click)
 
-time_label = tk.Label(root, text="Click to start", font=("Helvetica", 30), wraplength=300, justify="center")
+
+time_label = tk.Label(root, text="Test Your Reaction Time\n\nClick to start", font=("Helvetica", 30), wraplength=300, justify="center", bg="white")
 time_label.pack(pady=50)
 
-leaderboard_label = tk.Label(root, text="Leaderboard:\n", font=("Helvetica", 16), justify="left", bg="white")
-leaderboard_label.pack(pady=20)
+leaderboard_label = tk.Label(root, text="Leaderboard:\n", font=("Consolas", 16), justify="left", bg="white")
+leaderboard_label.pack(pady=5)
+
+
 
 update_leaderboard()
 
