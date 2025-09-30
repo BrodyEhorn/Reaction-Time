@@ -1,23 +1,29 @@
 import time
 import tkinter as tk
+import random
+import sqlite3
 
 
 global state, running
 #0: waiting to start
 #1: waiting to click
 #2: clicked, show time
+#3: show time, waiting to reset or click too soon, reset
 state = 0
 running = False
+
+conn = sqlite3.connect("leaderboard.db")
+cursor = conn.cursor()
 
 def handle_click(event):
     global state, running, timer_job
     if state == 0:
         start_timer()
     elif state == 1:
-        time_label.config(text="Too soon! Click to try again")
+        time_label.config(text="Too soon! Click to reset")
         root.config(bg="light coral")
         time_label.config(bg="light coral")
-        state = 0
+        state = 3
         running = False
         if timer_job:
             root.after_cancel(timer_job)
@@ -25,21 +31,43 @@ def handle_click(event):
     elif state == 2:
         global start_time
         reaction_time = time.time() - start_time
-        time_label.config(text=f"Reaction time: {reaction_time:.3f} seconds\nClick to try again")
+        time_label.config(text=f"Reaction time: {reaction_time:.3f} seconds\nClick to reset")
         root.config(bg="white")
         time_label.config(bg="white")
         running = False
+        state = 3
+        # Ask player name (for now, hardcode or use input box)
+        player_name = "Player1"
+
+        cursor.execute(
+            "INSERT INTO scores (name, reaction_time) VALUES (?, ?)",
+            (player_name, reaction_time)
+        )
+        conn.commit()
+        update_leaderboard()
+
+
+    elif state == 3:
         state = 0
+        time_label.config(text="Click to start")
+        root.config(bg="white")
+        time_label.config(bg="white")
+        leaderboard_label.pack(pady=20)
 
 def start_timer():
     global state, running, timer_job
     if not running:
         state = 1
         running = True
-        time_label.config(text="Wait for green")
+        time_label.config(text="Wait...")
         root.config(bg="#ffe799")
         time_label.config(bg="#ffe799")
-        timer_job = root.after(2000, click_signal)
+
+        leaderboard_label.pack_forget()
+
+        delay = random.randint(1500, 2500) 
+        timer_job = root.after(delay, click_signal)
+
         running = True
 
 def click_signal():
@@ -50,16 +78,45 @@ def click_signal():
         time_label.config(text="Click!")
         root.config(bg="pale green")
         time_label.config(bg="pale green")
-       
 
+def update_leaderboard():
+    cursor.execute("SELECT name, reaction_time FROM scores ORDER BY reaction_time ASC LIMIT 5")
+    top_scores = cursor.fetchall()
+    leaderboard_text = "Leaderboard:\n"
+    for i, (name, reaction_time) in enumerate(top_scores, start=1):
+        leaderboard_text += f"{i}. {name}: {reaction_time:.3f}\n"
+    leaderboard_label.config(text=leaderboard_text)
+       
 
 root = tk.Tk()
 root.title("Reaction time")
 root.geometry("400x500")
+root.config(bg="white")
 root.bind("<Button-1>", handle_click)
 
 time_label = tk.Label(root, text="Click to start", font=("Helvetica", 30), wraplength=300, justify="center")
 time_label.pack(pady=50)
+
+leaderboard_label = tk.Label(root, text="Leaderboard:\n", font=("Helvetica", 16), justify="left", bg="white")
+leaderboard_label.pack(pady=20)
+
+update_leaderboard()
+
+
+
+
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS scores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        reaction_time REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """
+)
+conn.commit()
+
 
 
 # Start the Tkinter event loop
