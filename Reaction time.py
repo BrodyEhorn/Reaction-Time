@@ -15,6 +15,18 @@ running = False
 
 conn = sqlite3.connect("leaderboard.db")
 cursor = conn.cursor()
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS scores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        reaction_time REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """
+)
+cursor.execute("DELETE FROM scores WHERE reaction_time IS NULL")
+conn.commit()
 
 def handle_click(event):
     global state, running, timer_job
@@ -90,11 +102,19 @@ def click_signal():
         time_label.config(bg="pale green")
 
 def update_leaderboard():
-    cursor.execute("SELECT name, reaction_time FROM scores ORDER BY reaction_time ASC LIMIT 5")
+    cursor.execute("" \
+        "SELECT name, reaction_time " \
+        "FROM scores " \
+        "WHERE reaction_time IS NOT NULL " \
+        "ORDER BY reaction_time ASC " \
+        "LIMIT 5")
     top_scores = cursor.fetchall()
     leaderboard_text = "Leaderboard:\n"
     for i, (name, reaction_time) in enumerate(top_scores, start=1):
-        leaderboard_text += f"{i:<2}  {name:<10}  {reaction_time:>6.3f}\n"
+        if name is None:
+            name = "Anonymous"
+        display_name = (name[:9] + '..') if len(name) > 10 else name
+        leaderboard_text += f"{i:<2}  {display_name:<10}  {reaction_time:>6.3f}\n"
     leaderboard_label.config(text=leaderboard_text)
        
 
@@ -113,22 +133,13 @@ leaderboard_label.pack(pady=5)
 
 
 
+
 update_leaderboard()
 
 
 
 
-cursor.execute(
-    """
-    CREATE TABLE IF NOT EXISTS scores (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        reaction_time REAL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """
-)
-conn.commit()
+
 
 
 
