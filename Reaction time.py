@@ -2,6 +2,7 @@ import time
 import tkinter as tk
 import random
 import sqlite3
+from tkinter import simpledialog
 
 
 global state, running
@@ -36,8 +37,17 @@ def handle_click(event):
         time_label.config(bg="white")
         running = False
         state = 3
-        # Ask player name (for now, hardcode or use input box)
-        player_name = "Player1"
+
+        cursor.execute("SELECT reaction_time FROM scores ORDER BY reaction_time ASC LIMIT 5")
+        top_scores = [row[0] for row in cursor.fetchall()]
+
+        # If leaderboard has fewer than 5, always qualifies
+        if len(top_scores) < 5 or reaction_time < max(top_scores):
+            player_name = simpledialog.askstring("New High Score!", "You made the leaderboard!\n Enter your name:")
+        if not player_name:
+            player_name = "Anonymous"
+
+
 
         cursor.execute(
             "INSERT INTO scores (name, reaction_time) VALUES (?, ?)",
